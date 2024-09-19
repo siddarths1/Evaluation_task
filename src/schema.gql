@@ -1,0 +1,31 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Employee {
+  employeeId: ID!
+  Name: String!
+  FirstName: String!
+  LastName: String!
+  Position: String!
+  Status: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type EmployeeResponse {
+  employees: [Employee!]!
+  total_count: Float!
+}
+
+type Query {
+  employees(filter: EmployeeFilterInput, skip: Int, take: Int): EmployeeResponse!
+}
+
+input EmployeeFilterInput {
+  Name: String
+  FirstName: String
+  LastName: String
+  Position: String
+  Status: Boolean
+}
