@@ -9,12 +9,15 @@ import {
   Button,
   Card,
 } from "react-bootstrap";
+import Select from "react-select";
 import "./style/employee.css";
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [filter, setFilter] = useState({
     Name: "",
+    Position: null,
     Status: "",
   });
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,6 +27,10 @@ const EmployeeList = () => {
   useEffect(() => {
     fetchEmployees();
   }, [currentPage, filter]);
+
+  useEffect(() => {
+    fetchPositions();
+  }, [filter.Status]);
 
   const fetchEmployees = async () => {
     try {
@@ -48,7 +55,8 @@ const EmployeeList = () => {
         variables: {
           filter: {
             Name: filter.Name || undefined,
-            Status: filter.Status !== "" ? filter.Status : undefined,
+            Position: filter.Position?.value || undefined,
+            Status: filter.Status !== "" ? filter.Status === "true" : undefined,
           },
           skip: (currentPage - 1) * employeesPerPage,
           take: employeesPerPage,
@@ -63,13 +71,40 @@ const EmployeeList = () => {
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
+  const fetchPositions = async () => {
+    try {
+      const response = await axios.post("http://localhost:4000/graphql", {
+        query: `
+          query{
+getPositions{Position,Status}
+}
+
+        `,
+        variables: {
+          status: filter.Status !== "" ? filter.Status === "true" : undefined,
+        },
+      });
+
+      const fetchedPositions = response.data.data.positions;
+      setPositions(
+        fetchedPositions.map((pos) => ({ value: pos.name, label: pos.name }))
+      );
+    } catch (error) {
+      console.error("Error fetching positions:", error);
+    }
+  };
+
+  const handleFilterChange = (name, value) => {
     setFilter((prevFilter) => ({
       ...prevFilter,
-      [name]:
-        name === "Status" ? (value === "" ? "" : value === "true") : value,
+      [name]: value,
     }));
+    if (name === "Status") {
+      setFilter((prevFilter) => ({
+        ...prevFilter,
+        Position: null,
+      }));
+    }
     setCurrentPage(1);
   };
 
@@ -77,38 +112,73 @@ const EmployeeList = () => {
     setCurrentPage(pageNumber);
   };
 
+  const customStyles = {
+    control: (provided) => ({
+      ...provided,
+      minHeight: "38px",
+      height: "38px",
+    }),
+    valueContainer: (provided) => ({
+      ...provided,
+      height: "38px",
+      padding: "0 6px",
+    }),
+    input: (provided) => ({
+      ...provided,
+      margin: "0px",
+    }),
+    indicatorSeparator: () => ({
+      display: "none",
+    }),
+    indicatorsContainer: (provided) => ({
+      ...provided,
+      height: "38px",
+    }),
+  };
+
   return (
     <Container fluid className="py-4 bg-light">
       <Card className="shadow-sm">
         <Card.Body>
-          <h1 className="mb-4">
+          <h2 className="mb-4">
             <i className="bi bi-people-fill me-2"></i>Employee Directory
-          </h1>
+          </h2>
 
           <Row className="mb-4">
-            <Col md={8}>
+            <Col md={4}>
               <Form.Group>
                 <Form.Control
                   type="text"
                   placeholder="Search by name"
                   name="Name"
                   value={filter.Name}
-                  onChange={handleFilterChange}
+                  onChange={(e) => handleFilterChange("Name", e.target.value)}
                 />
               </Form.Group>
             </Col>
             <Col md={4}>
-              <Form.Group>
-                <Form.Select
-                  name="Status"
-                  value={filter.Status === "" ? "" : filter.Status.toString()}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">All Employees</option>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </Form.Select>
-              </Form.Group>
+              <Form.Select
+                name="Status"
+                value={filter.Status}
+                onChange={(e) => handleFilterChange("Status", e.target.value)}
+              >
+                <option value="">All Employees</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </Form.Select>
+            </Col>
+            <Col md={4}>
+              <Select
+                value={filter.Position}
+                onChange={(selectedOption) =>
+                  handleFilterChange("Position", selectedOption)
+                }
+                options={positions}
+                placeholder="Select Position"
+                isClearable
+                isDisabled={filter.Status === ""}
+                styles={customStyles}
+              />
             </Col>
           </Row>
 
@@ -154,7 +224,7 @@ const EmployeeList = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="text-center">
+                    <td colSpan={8} className="text-center">
                       No employees found
                     </td>
                   </tr>
