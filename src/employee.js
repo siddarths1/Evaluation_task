@@ -26,11 +26,8 @@ const EmployeeList = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, [currentPage, filter]);
-
-  useEffect(() => {
     fetchPositions();
-  }, [filter.Status]);
+  }, [currentPage, filter]);
 
   const fetchEmployees = async () => {
     try {
@@ -75,19 +72,22 @@ const EmployeeList = () => {
     try {
       const response = await axios.post("http://localhost:4000/graphql", {
         query: `
-          query{
-getPositions{Position,Status}
-}
-
+          query {
+            getPositions {
+              Position
+              Status
+            }
+          }
         `,
-        variables: {
-          status: filter.Status !== "" ? filter.Status === "true" : undefined,
-        },
       });
 
-      const fetchedPositions = response.data.data.positions;
+      const fetchedPositions = response.data.data.getPositions;
       setPositions(
-        fetchedPositions.map((pos) => ({ value: pos.name, label: pos.name }))
+        fetchedPositions.map((pos) => ({
+          value: pos.Position,
+          label: pos.Position,
+          status: pos.Status,
+        }))
       );
     } catch (error) {
       console.error("Error fetching positions:", error);
@@ -95,16 +95,18 @@ getPositions{Position,Status}
   };
 
   const handleFilterChange = (name, value) => {
-    setFilter((prevFilter) => ({
-      ...prevFilter,
-      [name]: value,
-    }));
-    if (name === "Status") {
-      setFilter((prevFilter) => ({
+    setFilter((prevFilter) => {
+      const newFilter = {
         ...prevFilter,
-        Position: null,
-      }));
-    }
+        [name]: value,
+      };
+
+      if (name === "Status") {
+        newFilter.Position = null;
+      }
+
+      return newFilter;
+    });
     setCurrentPage(1);
   };
 
@@ -134,6 +136,35 @@ getPositions{Position,Status}
       ...provided,
       height: "38px",
     }),
+  };
+
+  const getPositionOptions = () => {
+    if (filter.Status === "") {
+      // If no status is selected, return unique positions regardless of status
+      const uniquePositions = positions.reduce((acc, pos) => {
+        if (!acc.some((item) => item.value === pos.value)) {
+          acc.push(pos);
+        }
+        return acc;
+      }, []);
+      return uniquePositions;
+    }
+
+    // Filter positions based on the selected status
+    const isActive = filter.Status === "true";
+    const filteredPositions = positions.filter(
+      (pos) => pos.status === isActive
+    );
+
+    // Get unique positions based on the filtered status
+    const uniqueFilteredPositions = filteredPositions.reduce((acc, pos) => {
+      if (!acc.some((item) => item.value === pos.value)) {
+        acc.push(pos);
+      }
+      return acc;
+    }, []);
+
+    return uniqueFilteredPositions;
   };
 
   return (
@@ -173,10 +204,9 @@ getPositions{Position,Status}
                 onChange={(selectedOption) =>
                   handleFilterChange("Position", selectedOption)
                 }
-                options={positions}
+                options={getPositionOptions()}
                 placeholder="Select Position"
                 isClearable
-                isDisabled={filter.Status === ""}
                 styles={customStyles}
               />
             </Col>
