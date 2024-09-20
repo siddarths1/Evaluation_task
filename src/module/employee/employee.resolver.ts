@@ -3,6 +3,7 @@ import { Resolver, Query, Args, Int } from '@nestjs/graphql';
 import { EmployeeResponse } from './dto/employee.response.dto';
 import { EmployeeFilterInput } from './dto/employee.input.dto';
 import { EmployeeService } from './emplyee.service';
+import { PositionResponse } from './dto/position.output.dto';
 
 @Resolver(() => EmployeeResponse)
 export class EmployeeResolver {
@@ -17,5 +18,16 @@ export class EmployeeResolver {
     const result = await this.employeeService.getEmployees(filter, skip, take);
     console.log('🚀 ~ EmployeeResolver ~ result:', result);
     return result;
+  }
+
+  @Query(() => [PositionResponse])
+  async getPositions(): Promise<PositionResponse[]> {
+    const positionResults = await this.employeeService.getPositions();
+    console.log(
+      '🚀 ~ EmployeeResolver ~ getPositions ~ positionResults:',
+      positionResults,
+    );
+
+    return positionResults;
   }
 }

@@ -4,6 +4,7 @@ import { EmployeeFilterInput } from './dto/employee.input.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EmployeeResponse } from './dto/employee.response.dto';
 import { Prisma } from '@prisma/client';
+import { PositionResponse } from './dto/position.output.dto';
 
 @Injectable()
 export class EmployeeService {
@@ -76,5 +77,28 @@ export class EmployeeService {
       total_count,
       employees: employeeList,
     };
+  }
+
+  async getPositions(): Promise<PositionResponse[]> {
+    const query = Prisma.sql`
+      WITH position_status AS (
+        SELECT 
+          "Position",
+          BOOL_OR("Status") AS "Status"
+        FROM "default$default"."Employee"
+        WHERE "Position" IS NOT NULL AND "Position" != ''
+        GROUP BY "Position"
+      )
+      SELECT 
+        "Position",
+        "Status"
+      FROM position_status
+      ORDER BY "Position" ASC;
+    `;
+
+    // Execute raw query and get the results
+    const positions = await this.prisma.$queryRaw<PositionResponse[]>(query);
+    console.log('🚀 ~ EmployeeService ~ getPositions ~ positions:', positions);
+    return positions;
   }
 }
