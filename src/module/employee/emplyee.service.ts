@@ -81,19 +81,16 @@ export class EmployeeService {
 
   async getPositions(): Promise<PositionResponse[]> {
     const query = Prisma.sql`
-      WITH position_status AS (
-        SELECT 
-          "Position",
-          BOOL_OR("Status") AS "Status"
-        FROM "default$default"."Employee"
-        WHERE "Position" IS NOT NULL AND "Position" != ''
-        GROUP BY "Position"
-      )
-      SELECT 
-        "Position",
-        "Status"
-      FROM position_status
-      ORDER BY "Position" ASC;
+   SELECT 
+  DISTINCT "Position", 
+  "Status"
+FROM 
+  "default$default"."Employee"
+WHERE 
+  "Position" IS NOT NULL 
+  AND "Position" != ''
+ORDER BY 
+  "Position" ASC, "Status" DESC;
     `;
 
     // Execute raw query and get the results
